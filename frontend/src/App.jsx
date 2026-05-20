@@ -1,40 +1,67 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
-  const [todos, setTodos] = useState([
-    { id: 1, text: 'Spring Boot 백엔드 설정하기', completed: false },
-    { id: 2, text: 'React 프론트엔드 개발하기', completed: false },
-  ])
+  const [todos, setTodos] = useState([])
   const [inputValue, setInputValue] = useState('')
+  const API_URL = 'http://localhost:8080/api/todos'
+
+  // 백엔드에서 할 일 목록 가져오기
+  useEffect(() => {
+    fetch(API_URL)
+      .then(res => res.json())
+      .then(data => setTodos(data))
+      .catch(err => console.error("Error fetching todos:", err))
+  }, [])
 
   const addTodo = (e) => {
     e.preventDefault()
     if (!inputValue.trim()) return
     
     const newTodo = {
-      id: Date.now(),
       text: inputValue,
       completed: false
     }
-    
-    setTodos([...todos, newTodo])
-    setInputValue('')
+
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newTodo)
+    })
+    .then(res => res.json())
+    .then(savedTodo => {
+      setTodos([...todos, savedTodo])
+      setInputValue('')
+    })
+    .catch(err => console.error("Error adding todo:", err))
   }
 
   const toggleTodo = (id) => {
-    setTodos(todos.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ))
+    fetch(`${API_URL}/${id}`, {
+      method: 'PUT'
+    })
+    .then(res => res.json())
+    .then(updatedTodo => {
+      setTodos(todos.map(todo => 
+        todo.id === id ? updatedTodo : todo
+      ))
+    })
+    .catch(err => console.error("Error toggling todo:", err))
   }
 
   const deleteTodo = (id) => {
-    setTodos(todos.filter(todo => todo.id !== id))
+    fetch(`${API_URL}/${id}`, {
+      method: 'DELETE'
+    })
+    .then(() => {
+      setTodos(todos.filter(todo => todo.id !== id))
+    })
+    .catch(err => console.error("Error deleting todo:", err))
   }
 
   return (
     <div className="todo-container">
-      <h1>My Todo List</h1>
+      <h1>Fullstack Todo List</h1>
       
       <form onSubmit={addTodo} className="todo-form">
         <input 
